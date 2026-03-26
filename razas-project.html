@@ -1,0 +1,112 @@
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBOD7U-9XzMxYfGi_FnEtlRB9NyCYIK1j0",
+  authDomain: "ashifs-project.firebaseapp.com",
+  projectId: "ashifs-project",
+  storageBucket: "ashifs-project.firebasestorage.app",
+  messagingSenderId: "466287590812",
+  appId: "1:466287590812:web:022b7552e9e772f71bdc59",
+  measurementId: "G-717H65K5W5"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+// 📂 Upload document to cloud
+function uploadDoc() {
+  const file = document.getElementById("file").files[0];
+  if (!file) return alert("Select file first!");
+
+  const ref = storage.ref("docs/" + file.name);
+
+  ref.put(file).then(() => {
+    ref.getDownloadURL().then(url => {
+      db.collection("documents").add({
+        name: file.name,
+        url: url
+      });
+      loadDocs();
+      alert("Uploaded to Cloud ☁️");
+    });
+  });
+}
+
+// 📄 Load documents
+function loadDocs() {
+  const list = document.getElementById("docList");
+  list.innerHTML = "";
+
+  db.collection("documents").get().then(snapshot => {
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      list.innerHTML += `
+        <div class="docItem">
+          <a href="${data.url}" target="_blank">${data.name}</a>
+          <button onclick="deleteDoc('${doc.id}', '${data.name}')">❌</button>
+        </div>`;
+    });
+  });
+}
+
+// ❌ Delete document
+function deleteDoc(id, name) {
+  db.collection("documents").doc(id).delete();
+
+  storage.ref("docs/" + name).delete().then(() => {
+    loadDocs();
+  });
+}
+
+// 👤 Save profile
+function saveProfile() {
+  db.collection("profile").doc("ashif").set({
+    name: name.value,
+    skills: skills.value,
+    photo: profileImg.src
+  });
+  alert("Saved in Cloud ☁️");
+}
+
+// 🏗️ Add work
+function addWork() {
+  db.collection("work").add({
+    company: company.value,
+    role: role.value
+  });
+  loadWork();
+}
+
+// 📊 Load work
+function loadWork() {
+  const list = document.getElementById("workList");
+  list.innerHTML = "";
+
+  db.collection("work").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const w = doc.data();
+      list.innerHTML += `<p>${w.company} - ${w.role}</p>`;
+    });
+  });
+}
+
+// 🔄 Load everything
+function loadAll() {
+  loadDocs();
+  loadWork();
+
+  db.collection("profile").doc("ashif").get().then(doc => {
+    if (doc.exists) {
+      const p = doc.data();
+      name.value = p.name;
+      skills.value = p.skills;
+      profileImg.src = p.photo;
+    }
+  });
+}
+</script>
